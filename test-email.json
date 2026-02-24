@@ -1,0 +1,7 @@
+{
+  "type": "ACCOUNT_CREATED",
+  "payload": {
+    "to": "test@example.com",
+    "username": "Test User"
+  }
+}

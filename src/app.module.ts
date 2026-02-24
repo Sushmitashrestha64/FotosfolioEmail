@@ -1,10 +1,27 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
+import { ApiModule } from './api/api.module';
+import { WorkersModule } from './workersqueue/workerqueue.module';
+import { SenderModule } from './sender/sender.module';
+import { HealthModule } from './health/health.module';
+import redisConfig from './config/redis.config';
+import resendConfig from './config/resend.config';
+import { LoggerModule } from './logger/logger.module';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    // Global configuration
+    ConfigModule.forRoot({
+      load: [redisConfig, resendConfig],
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+
+    LoggerModule,
+    ApiModule,
+    WorkersModule,
+    SenderModule,
+    HealthModule,
+  ],
 })
 export class AppModule {}

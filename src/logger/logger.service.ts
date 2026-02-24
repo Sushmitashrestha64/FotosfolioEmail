@@ -1,4 +1,4 @@
-import { Injectable, LoggerService } from '@nestjs/common';
+import { Injectable, LoggerService, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import pino, { Logger, LoggerOptions } from 'pino';
 
@@ -6,7 +6,7 @@ import pino, { Logger, LoggerOptions } from 'pino';
 export class AppLoggerService implements LoggerService {
   private pino:Logger;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(@Optional() private readonly configService?: ConfigService) {
     const nodeEnv = process.env.NODE_ENV || 'development';
 
     const loggerConfig: LoggerOptions = {
