@@ -68,13 +68,14 @@ export enum EmailType {
 }
 
 // Email Data Interface - Standard output from builder services
+// category and type are optional because they are automatically added by the worker pool
 export interface EmailData {
   to: string;
   subject: string;
   html: string;
   text: string;
-  category: EmailCategory;
-  type: EmailType;
+  category?: EmailCategory;
+  type?: EmailType;
 }
 
 // Legacy enum (keeping for backward compatibility if needed)
