@@ -1,4 +1,4 @@
-import { AddonExpiryEmailDto } from 'src/corn-jobs/dto/addonexpiry.dto';
+import { AddonExpiryEmailDto } from 'src/cron-jobs/dto/addonexpiry.dto';
 import { ContactDto } from 'src/user/dto/contact.dto';
 
 // Email Categories - 6 worker queues for microservice

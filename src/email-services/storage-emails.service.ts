@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseEmailService } from './base-email.service';
 import { EmailData, EmailCategory, EmailType } from '../types/email-types';
-import { AddonExpiryEmailDto } from 'src/corn-jobs/dto/addonexpiry.dto';
+import { AddonExpiryEmailDto } from 'src/cron-jobs/dto/addonexpiry.dto';
 
 @Injectable()
 export class StorageEmailsService extends BaseEmailService {
@@ -13,18 +13,114 @@ export class StorageEmailsService extends BaseEmailService {
     const { to, userName, storageUsed, storageLimit, percentUsed } = payload;
     const subject = 'Storage Warning: Your Storage is Almost Full';
     const html = `
-    <div style="background-color:#f9f9f9; padding:40px 0; font-family:Arial, sans-serif; color:#333;">
-      <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:10px; padding:40px 50px;">
-        <h2 style="color:#ff9800; font-size:20px; margin-bottom:20px; text-align:center;">Storage Warning</h2>
-        
-        <p style="font-size:14px; color:#333; margin-bottom:30px; text-align:center;">
-          Hi <strong>${userName}</strong>,<br><br>
-          Your storage is ${percentUsed}% full (${storageUsed} GB of ${storageLimit} GB used).
-        </p>
-        
-        <p style="font-size:13px; color:#666; text-align:center;">
-          Consider upgrading your plan or deleting unused files to avoid service interruption.
-        </p>
+    <div style="background-color:#f4f4f7;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+      <div style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 5px 15px rgba(0,0,0,0.05);">
+
+        <!-- Header -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="padding:20px 28px 0 28px;">
+          <tr>
+            <td align="left" valign="middle" style="padding-bottom:18px;">
+              <img src="https://cdn.fotosfolio.com/logo3.png" alt="Fotosfolio" width="140"
+                style="display:block; outline:none; text-decoration:none; border:none; -ms-interpolation-mode:bicubic;" />
+            </td>
+            <td align="right" valign="middle" style="padding-bottom:18px;">
+              <table cellpadding="0" cellspacing="0" role="presentation" style="display:inline-block;">
+                <tr>
+                  <td style="padding:0 6px;">
+                    <a href="https://www.instagram.com/fotosfolio.np/" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384063.png" width="20" alt="Instagram"
+                        style="display:block; border:none; outline:none; text-decoration:none;" />
+                    </a>
+                  </td>
+                  <td style="padding:0 6px;">
+                    <a href="https://linkedin.com/company/fotosfolio" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384014.png" width="20" alt="LinkedIn"
+                        style="display:block; border:none; outline:none; text-decoration:none;" />
+                    </a>
+                  </td>
+                  <td style="padding:0 6px;">
+                    <a href="https://www.facebook.com/profile.php?id=61575539292098" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384005.png" width="20" alt="Facebook"
+                        style="display:block; border:none; outline:none; text-decoration:none;" />
+                    </a>
+                  </td>
+                  <td style="padding:0 6px;">
+                    <a href="https://whatsapp.com/channel/0029VbBIFPb8kyyIa0ILHs2M" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" width="20" alt="WhatsApp"
+                        style="display:block; border:none; outline:none; text-decoration:none;" />
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Body -->
+        <div style="width:100%;background-color:#fff;padding:0 0 40px 0;line-height:1.6;">
+          <div style="text-align:center;padding:40px 25px 15px 25px;border-bottom:1px solid #f0f0f0;">
+            <h2 style="margin:0;font-size:22px;font-weight:600;color:#ff9800;">Storage Alert</h2>
+            <p style="margin-top:10px;font-size:15px;color:#555;">
+              Your storage is running low.
+            </p>
+          </div>
+
+          <p style="text-align:center;font-size:13px;color:#777;margin:20px 25px 0 25px;">
+            Hi <strong>${userName}</strong>, your storage space is reaching its limit.
+          </p>
+
+          <div style="margin:30px auto;background:#fff;border:1px solid #e6e6e6;border-radius:10px;
+            padding:22px 28px;box-shadow:0 2px 8px rgba(0,0,0,0.04);width:calc(100% - 150px);">
+            <h4 style="margin:0 0 14px 0;font-size:15px;font-weight:600;color:#333;text-align:left;">
+              Storage Summary
+            </h4>
+            <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
+              <tr style="border-bottom:1px solid #f3f3f3;">
+                <td style="padding:8px 0;color:#777;">Storage Used</td>
+                <td style="text-align:right;font-weight:500;">${storageUsed} GB</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f3f3f3;">
+                <td style="padding:8px 0;color:#777;">Storage Limit</td>
+                <td style="text-align:right;font-weight:500;">${storageLimit} GB</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#777;">Usage</td>
+                <td style="text-align:right;font-weight:600;color:#ff9800;">${percentUsed}% Full</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="text-align:center;font-size:14px;color:#ff9800;margin:25px 35px 0 35px;font-weight:600;">
+            Your storage is ${percentUsed}% full.
+          </p>
+          <p style="text-align:center;font-size:13px;color:#555;margin:10px 35px 0 35px;">
+            Consider upgrading your plan or deleting unused files to avoid service interruption.
+          </p>
+
+          <div style="text-align:center;margin:28px 0 38px 0;">
+            <a href="https://fotosfolio.com/upgrade" style="display:inline-block;background-color:#8B1E1E;color:#ffffff;
+              text-decoration:none;padding:13px 32px;border-radius:25px;font-weight:500;font-size:15px;">
+              Upgrade Plan
+            </a>
+          </div>
+
+          <div style="height:1px;background-color:#eeeeee;margin:20px 60px;"></div>
+
+          <p style="text-align:center;font-size:13px;color:#777;margin:0 40px 20px 40px;">
+            Need help managing your storage? Our support team is always ready to assist.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="border-top:1px solid #eaeaea;background-color:#fafafa;text-align:center;padding:15px;font-size:12px;color:#777;">
+          <p style="margin:0;line-height:1.6;">
+            © ${new Date().getFullYear()} Fotosfolio. All rights reserved.<br>
+            <a href="https://fotosfolio.com/privacy" style="color:#7b1717;text-decoration:none;margin:0 6px;">Privacy Policy</a> •
+            <a href="https://fotosfolio.com/terms-and-conditions" style="color:#7b1717;text-decoration:none;margin:0 6px;">Terms of Service</a> •
+            <a href="https://fotosfolio.com/contact-us" style="color:#7b1717;text-decoration:none;margin:0 6px;">Contact Support</a>
+          </p>
+        </div>
+
       </div>
     </div>`;
     const text = `Hi ${userName},\n\nYour storage is ${percentUsed}% full (${storageUsed} GB of ${storageLimit} GB).\n\nConsider upgrading your plan or deleting unused files.`;
@@ -47,20 +143,114 @@ export class StorageEmailsService extends BaseEmailService {
     const subject = 'Storage Full: Immediate Action Required';
     
     const html = `
-    <div style="background-color:#f9f9f9; padding:40px 0; font-family:Arial, sans-serif; color:#333;">
-      <div style="max-width:600px; margin:0 auto; background:#ffffff; border-radius:10px; padding:40px 50px;">
-        <h2 style="color:#f44336; font-size:20px; margin-bottom:20px; text-align:center;">Storage Full</h2>
-        
-        <p style="font-size:14px; color:#333; margin-bottom:30px; text-align:center;">
-          Hi <strong>${userName}</strong>,<br><br>
-          Your storage is completely full (${storageLimit} GB). You cannot upload new files until you free up space or upgrade your plan.
-        </p>
-        
-        <div style="text-align:center; margin:30px 0;">
-          <a href="https://fotosfolio.com/upgrade" style="background-color:#f44336; color:#fff; text-decoration:none; padding:12px 30px; border-radius:25px; font-size:14px; display:inline-block;">
-            Upgrade Plan
-          </a>
+    <div style="background-color:#f4f4f7;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+      <div style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 5px 15px rgba(0,0,0,0.05);">
+
+        <!-- Header -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="padding:20px 28px 0 28px;">
+          <tr>
+            <td align="left" valign="middle" style="padding-bottom:18px;">
+              <img src="https://cdn.fotosfolio.com/logo3.png" alt="Fotosfolio" width="140"
+                style="display:block; outline:none; text-decoration:none; border:none; -ms-interpolation-mode:bicubic;" />
+            </td>
+            <td align="right" valign="middle" style="padding-bottom:18px;">
+              <table cellpadding="0" cellspacing="0" role="presentation" style="display:inline-block;">
+                <tr>
+                  <td style="padding:0 6px;">
+                    <a href="https://www.instagram.com/fotosfolio.np/" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384063.png" width="20" alt="Instagram"
+                        style="display:block; border:none; outline:none; text-decoration:none;" />
+                    </a>
+                  </td>
+                  <td style="padding:0 6px;">
+                    <a href="https://linkedin.com/company/fotosfolio" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384014.png" width="20" alt="LinkedIn"
+                        style="display:block; border:none; outline:none; text-decoration:none;" />
+                    </a>
+                  </td>
+                  <td style="padding:0 6px;">
+                    <a href="https://www.facebook.com/profile.php?id=61575539292098" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384005.png" width="20" alt="Facebook"
+                        style="display:block; border:none; outline:none; text-decoration:none;" />
+                    </a>
+                  </td>
+                  <td style="padding:0 6px;">
+                    <a href="https://whatsapp.com/channel/0029VbBIFPb8kyyIa0ILHs2M" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" width="20" alt="WhatsApp"
+                        style="display:block; border:none; outline:none; text-decoration:none;" />
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Body -->
+        <div style="width:100%;background-color:#fff;padding:0 0 40px 0;line-height:1.6;">
+          <div style="text-align:center;padding:40px 25px 15px 25px;border-bottom:1px solid #f0f0f0;">
+            <h2 style="margin:0;font-size:22px;font-weight:600;color:#8B1E1E;">Storage Full</h2>
+            <p style="margin-top:10px;font-size:15px;color:#555;">
+              Immediate action required.
+            </p>
+          </div>
+
+          <p style="text-align:center;font-size:13px;color:#777;margin:20px 25px 0 25px;">
+            Hi <strong>${userName}</strong>, your storage capacity has been reached.
+          </p>
+
+          <div style="margin:30px auto;background:#fff;border:1px solid #e6e6e6;border-radius:10px;
+            padding:22px 28px;box-shadow:0 2px 8px rgba(0,0,0,0.04);width:calc(100% - 150px);">
+            <h4 style="margin:0 0 14px 0;font-size:15px;font-weight:600;color:#333;text-align:left;">
+              Storage Status
+            </h4>
+            <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
+              <tr style="border-bottom:1px solid #f3f3f3;">
+                <td style="padding:8px 0;color:#777;">Storage Limit</td>
+                <td style="text-align:right;font-weight:500;">${storageLimit} GB</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#777;">Status</td>
+                <td style="text-align:right;font-weight:600;color:#8B1E1E;">100% Full</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="text-align:center;font-size:14px;color:#8B1E1E;margin:25px 35px 0 35px;font-weight:600;">
+            Your storage is completely full.
+          </p>
+          <p style="text-align:center;font-size:13px;color:#555;margin:10px 35px 0 35px;">
+            You cannot upload new files until you free up space or upgrade your plan.
+          </p>
+
+          <div style="text-align:center;margin:28px 0 38px 0;">
+            <a href="https://fotosfolio.com/upgrade" style="display:inline-block;background-color:#8B1E1E;color:#ffffff;
+              text-decoration:none;padding:13px 32px;border-radius:25px;font-weight:500;font-size:15px;margin-right:10px;">
+              Upgrade Plan
+            </a>
+            <a href="https://fotosfolio.com/files" style="display:inline-block;background-color:#d9534f;color:#ffffff;
+              text-decoration:none;padding:13px 32px;border-radius:25px;font-weight:500;font-size:15px;">
+              Delete Files
+            </a>
+          </div>
+
+          <div style="height:1px;background-color:#eeeeee;margin:20px 60px;"></div>
+
+          <p style="text-align:center;font-size:13px;color:#777;margin:0 40px 20px 40px;">
+            Need help managing your storage? Our support team is ready to assist you.
+          </p>
         </div>
+
+        <!-- Footer -->
+        <div style="border-top:1px solid #eaeaea;background-color:#fafafa;text-align:center;padding:15px;font-size:12px;color:#777;">
+          <p style="margin:0;line-height:1.6;">
+            © ${new Date().getFullYear()} Fotosfolio. All rights reserved.<br>
+            <a href="https://fotosfolio.com/privacy" style="color:#7b1717;text-decoration:none;margin:0 6px;">Privacy Policy</a> •
+            <a href="https://fotosfolio.com/terms-and-conditions" style="color:#7b1717;text-decoration:none;margin:0 6px;">Terms of Service</a> •
+            <a href="https://fotosfolio.com/contact-us" style="color:#7b1717;text-decoration:none;margin:0 6px;">Contact Support</a>
+          </p>
+        </div>
+
       </div>
     </div>`;
     

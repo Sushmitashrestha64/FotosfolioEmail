@@ -34,6 +34,16 @@ export class EmailSenderService {
         html,
       });
 
+      // Check if response is valid
+      if (!response || !response.data || !response.data.id) {
+        this.logger.warn(
+          `⚠️ Email sent but no ID returned for ${to}. Response: ${JSON.stringify(response)}`,
+        );
+        if (response.error) {
+          throw new Error(`Resend API error: ${JSON.stringify(response.error)}`);
+        }
+      }
+
       // Increment counter after successful send
       this.resendProvider.incrementCounter();
 

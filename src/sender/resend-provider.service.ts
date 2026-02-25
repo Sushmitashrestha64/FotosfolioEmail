@@ -35,6 +35,11 @@ export class ResendProviderService implements OnModuleInit {
    * Fetch all emails sent today from Resend API
    */
   private async getTodaysEmailCount(): Promise<number> {
+    // DISABLED: Fetching from API causes rate limiting and errors
+    // Using local counter instead for better reliability
+    return this.emailCountToday;
+    
+    /* Original API fetch code - disabled
     const apiUrl = 'https://api.resend.com/emails';
     
     try {
@@ -53,11 +58,12 @@ export class ResendProviderService implements OnModuleInit {
       return todaysEmails.length;
     } catch (error: any) {
       this.logger.error(
-        `Error fetching email count: ${error.response?.data || error.message}`,
+        `Error fetching email count: ${JSON.stringify(error.response?.data) || error.message}`,
       );
       // Fallback to 0 if we can't fetch
       return 0;
     }
+    */
   }
 
   /**

@@ -14,7 +14,7 @@ export class SecurityEmailsService extends BaseEmailService {
     const subject = 'New Login to Your Fotosfolio Account';
     const formattedDate = loginTime.toLocaleString(); // format the date for readability
 
-    const text = `Hi ${userName},\n\nWe noticed a new login to your Fotosfolio account.\nTime: ${formattedDate}\n${ipAddress ? `IP Address: ${ipAddress}\n` : ''}${location ? `Location: ${location}\n` : ''}\n\nIf this was you, you can safely ignore this message.\nIf you didn't authorize this login, please reset your password immediately.\n\n– Fotosfolio Team`;
+    const text = `Hi ${userName},\n\nWe noticed a new login to your Fotosfolio account.\nTime: ${formattedDate}\n${ipAddress ? `IP Address: ${ipAddress}\n` : ''}\n\nIf this was you, you can safely ignore this message.\nIf you didn't authorize this login, please reset your password immediately.\n\n– Fotosfolio Team`;
 
     const html = `<div style="font-family: Arial, sans-serif;">
       <p>Hi <strong>${userName}</strong>,</p>
@@ -22,7 +22,6 @@ export class SecurityEmailsService extends BaseEmailService {
       <ul>
         <li><strong>Time:</strong> ${formattedDate}</li>
         ${ipAddress ? `<li><strong>IP Address:</strong> ${ipAddress}</li>` : ''}
-
       </ul>
       <p>If this was you, you can safely ignore this message.</p>
       <p>If you didn't authorize this login, please <a href="https://yourdomain.com/reset-password" style="color: #007BFF;">reset your password</a> immediately.</p>

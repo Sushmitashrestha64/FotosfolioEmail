@@ -55,16 +55,18 @@ export class WorkerPoolService implements OnModuleInit, OnModuleDestroy {
       const queue = new Queue(queueName, { connection });
       this.queues.set(category, queue);
 
-      // Create worker
+      // Create worker with rate limiting
+      // Resend allows 2 requests/second globally
+      // With 6 queues, we use conservative limits + BullMQ retry for rate limit errors
       const worker = new Worker(
         queueName,
         async (job: Job) => this.processJob(category, job),
         {
           connection,
-          concurrency,
+          concurrency: 2, // Process 2 emails at a time per queue
           limiter: {
             max: 2,
-            duration: 1000, // 2 jobs per second
+            duration: 1000, // 2 jobs per second per queue
           },
         },
       );
@@ -207,8 +209,7 @@ export class WorkerPoolService implements OnModuleInit, OnModuleDestroy {
           payload.status
         );
       case EmailType.SUBSCRIPTION_RENEWED:
-        // Map to subscription created
-        return this.subscriptionEmails.buildSubscriptionCreatedEmail(
+        return this.subscriptionEmails.buildSubscriptionRenewedEmail(
           payload.to,
           payload.userName,
           payload.planName,
@@ -294,9 +295,9 @@ export class WorkerPoolService implements OnModuleInit, OnModuleDestroy {
       case EmailType.GALLERY_SHARED:
         // Map to project invitation
         return this.projectEmails.buildProjectInvitationEmail(
-          payload.receiverEmail,
-          payload.inviterName,
           payload.projectName,
+          payload.inviterName,
+          payload.receiverEmail,
           payload.projectLink
         );
       case EmailType.FOLDER_SHARED:
@@ -322,6 +323,8 @@ export class WorkerPoolService implements OnModuleInit, OnModuleDestroy {
         return this.paymentEmails.buildPaymentSuccess(payload);
       case EmailType.PAYMENT_FAILED:
         return this.paymentEmails.buildPaymentFailed(payload);
+      case EmailType.PAYMENT_REJECTION:
+        return this.paymentEmails.buildPaymentRejectionEmail(payload.to, payload.userName, payload.planName);
       case EmailType.REFUND_PROCESSED:
         return this.paymentEmails.buildRefundProcessed(payload);
       default:
