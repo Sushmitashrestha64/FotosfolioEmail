@@ -8,26 +8,139 @@ export class SecurityEmailsService extends BaseEmailService {
   async buildLoginNotificationEmail(
     to: string,
     userName: string,
-    loginTime: Date,
+    loginTime: Date | string,
     ipAddress: string
   ): Promise<EmailData> {
     const subject = 'New Login to Your Fotosfolio Account';
-    const formattedDate = loginTime.toLocaleString(); // format the date for readability
+    // Handle both Date object and string (string comes from queue serialization)
+    const formattedDate = typeof loginTime === 'string' ? loginTime : loginTime.toISOString();
 
-    const text = `Hi ${userName},\n\nWe noticed a new login to your Fotosfolio account.\nTime: ${formattedDate}\n${ipAddress ? `IP Address: ${ipAddress}\n` : ''}\n\nIf this was you, you can safely ignore this message.\nIf you didn't authorize this login, please reset your password immediately.\n\n– Fotosfolio Team`;
+    const text = `Hi ${userName},
 
-    const html = `<div style="font-family: Arial, sans-serif;">
-      <p>Hi <strong>${userName}</strong>,</p>
-      <p>We noticed a new login to your <strong>Fotosfolio</strong> account.</p>
-      <ul>
-        <li><strong>Time:</strong> ${formattedDate}</li>
-        ${ipAddress ? `<li><strong>IP Address:</strong> ${ipAddress}</li>` : ''}
-      </ul>
-      <p>If this was you, you can safely ignore this message.</p>
-      <p>If you didn't authorize this login, please <a href="https://yourdomain.com/reset-password" style="color: #007BFF;">reset your password</a> immediately.</p>
-      <p>– Fotosfolio Team</p>
-    </div>`;
+We noticed a new login to your Fotosfolio account.
 
+Time: ${formattedDate}
+IP Address: ${ipAddress}
+
+If this was you, you can safely ignore this message.
+
+If you didn't authorize this login, please reset your password immediately.
+
+– Fotosfolio Team`;
+
+    const html = `
+    <div style="background-color:#f4f4f7;padding:40px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+      <div style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 5px 15px rgba(0,0,0,0.05);">
+
+        <!-- Header -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="padding:20px 28px 0 28px;">
+          <tr>
+            <td align="left" valign="middle" style="padding-bottom:18px;">
+              <img src="https://cdn.fotosfolio.com/logo3.png" alt="Fotosfolio" width="140" style="display:block; outline:none; text-decoration:none; border:none; -ms-interpolation-mode:bicubic;" />
+            </td>
+            <td align="right" valign="middle" style="padding-bottom:18px;">
+              <table cellpadding="0" cellspacing="0" role="presentation" style="display:inline-block;">
+                <tr>
+                  <td style="padding-right:12px;">
+                    <a href="https://www.instagram.com/fotosfolio.np/" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384063.png" width="20" alt="Instagram" style="display:block; border:none;" />
+                    </a>
+                  </td>
+                  <td style="padding-right:12px;">
+                    <a href="https://linkedin.com/company/fotosfolio" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384014.png" width="20" alt="LinkedIn" style="display:block; border:none;" />
+                    </a>
+                  </td>
+                  <td style="padding-right:12px;">
+                    <a href="https://www.facebook.com/profile.php?id=61575539292098" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/1384/1384005.png" width="20" alt="Facebook" style="display:block; border:none;" />
+                    </a>
+                  </td>
+                  <td>
+                    <a href="https://whatsapp.com/channel/0029VbBIFPb8kyyIa0ILHs2M" target="_blank">
+                      <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" width="20" alt="WhatsApp" style="display:block; border:none;" />
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Email Body -->
+        <div style="padding:30px;text-align:center;">
+          <h2 style="font-size:20px;color:#111;margin-bottom:12px;">New Login to Your Fotosfolio Account</h2>
+
+          <p style="color:#555;font-size:15px;margin-bottom:20px;">
+            Hi <strong>${userName}</strong>,
+          </p>
+
+          <p style="color:#555;font-size:15px;line-height:1.6;margin-bottom:25px;">
+            We noticed a new login to your Fotosfolio account.
+          </p>
+
+          <!-- Highlight Box -->
+          <div style="background-color:#fff8e6;border-left:3px solid #f59e0b;border-radius:8px;padding:16px 18px;margin:0 auto 24px;max-width:90%;">
+            <h4 style="margin:0 0 12px 0;font-size:15px;font-weight:600;color:#333;">Login Details</h4>
+            <table style="width:100%;border-collapse:collapse;font-size:14px;color:#333;">
+              <tr>
+                <td style="padding:6px 0;color:#666;">Time:</td>
+                <td style="text-align:right;color:#444;">${formattedDate}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#666;">IP Address:</td>
+                <td style="text-align:right;color:#444;">${ipAddress}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Divider -->
+          <div style="margin:20px 0;">
+            <span style="display:inline-block;width:50px;height:1px;background:#ccc;vertical-align:middle;"></span>
+            <span style="display:inline-block;width:6px;height:6px;background:#8b0d0d;border-radius:50%;margin:0 6px;vertical-align:middle;"></span>
+            <span style="display:inline-block;width:50px;height:1px;background:#ccc;vertical-align:middle;"></span>
+          </div>
+
+          <p style="color:#555;font-size:14px;margin-bottom:8px;">
+            If this was you, you can safely ignore this message.
+          </p>
+
+          <p style="color:#555;font-size:14px;margin-bottom:25px;">
+            If you didn't authorize this login, please reset your password immediately.
+          </p>
+
+          <!-- Call-to-Action Button -->
+          <a href="https://fotosfolio.com/reset-password" target="_blank"
+             style="display:inline-block;background-color:#8b0d0d;color:#fff;text-decoration:none;
+             padding:12px 30px;border-radius:25px;font-weight:600;font-size:14px;margin-bottom:35px;">
+            Reset Password
+          </a>
+
+          <!-- Assistance Box -->
+          <div style="background-color:#fafafa;border:1px solid #e2e2e2;border-radius:8px;padding:18px;margin-top:15px;">
+            <p style="font-size:14px;color:#555;margin:0;">
+              We take your account security seriously. If you need assistance, please
+              <a href="https://fotosfolio.com/contact" style="color:#8b0d0d;text-decoration:none;">contact us</a>.
+            </p>
+          </div>
+
+          <p style="margin-top:40px;color:#444;font-size:14px;">Best regards,</p>
+          <p style="font-weight:600;color:#111;">– Fotosfolio Team</p>
+        </div>
+
+        <!-- Footer -->
+        <div style="border-top:1px solid #eaeaea;background-color:#fafafa;text-align:center;padding:15px;font-size:12px;color:#777;">
+          <p style="margin:0;line-height:1.6;">
+            © 2025 Fotosfolio. All rights reserved.<br>
+            <a href="https://fotosfolio.com/privacy" style="color:#7b1717; text-decoration:none; margin:0 6px;">Privacy Policy</a> •
+            <a href="https://fotosfolio.com/terms-and-conditions" style="color:#7b1717; text-decoration:none; margin:0 6px;">Terms of Service</a> •
+            <a href="https://fotosfolio.com/contact-us" style="color:#7b1717; text-decoration:none; margin:0 6px;">Contact Support</a>
+          </p>
+        </div>
+
+      </div>
+    </div>
+    `;
     return { to, subject, text, html };
   }
 
@@ -36,9 +149,9 @@ export class SecurityEmailsService extends BaseEmailService {
     ipAddress: string,
     device: string,
     location: string,
-    datetime: Date
+    datetime: Date,
   ): Promise<EmailData> {
-    const subject = ` New Device Login Detected`;
+    const subject = `New Device Login Detected`;
     const text = `We detected a new login to your Fotosfolio account.
 
   Device: ${device}
@@ -150,7 +263,6 @@ export class SecurityEmailsService extends BaseEmailService {
         </td>
       </tr>
     </table>
-
     </body>
     </html>
     `;
@@ -164,7 +276,7 @@ export class SecurityEmailsService extends BaseEmailService {
     ipAddress: string,
     datetime: Date
   ): Promise<EmailData> {
-    const subject = `🔐 Two-Factor Authentication Enabled`;
+    const subject = `Two-Factor Authentication Enabled`;
     const text = `Two-factor authentication has been enabled on your Fotosfolio account.
 
   Device: ${device}
@@ -293,7 +405,7 @@ export class SecurityEmailsService extends BaseEmailService {
 
       </div>
     </div>
-    `;
+  `;
     console.log('2FA enabled email sent successfully');
     return { to: userEmail, subject, text, html };
   }
@@ -305,7 +417,7 @@ export class SecurityEmailsService extends BaseEmailService {
     ipAddress: string,
     datetime: Date
   ): Promise<EmailData> {
-    const subject = `⚠️ Two-Factor Authentication Disabled`;
+    const subject = `Two-Factor Authentication Disabled`;
     const text = `Two-factor authentication has been disabled on your Fotosfolio account.
 
   Device: ${device}
@@ -447,7 +559,7 @@ export class SecurityEmailsService extends BaseEmailService {
     ipAddress: string,
     datetime: Date
   ): Promise<EmailData> {
-    const subject = `🔑 Passkey Added to Your Account`;
+    const subject = `Passkey Added to Your Account`;
     const text = `A new passkey has been added to your Fotosfolio account.
 
   Passkey Name: ${passkeyName}
@@ -594,7 +706,7 @@ export class SecurityEmailsService extends BaseEmailService {
     ipAddress: string,
     datetime: Date
   ): Promise<EmailData> {
-    const subject = `⚠️ Passkey Removed from Your Account`;
+    const subject = `Passkey Removed from Your Account`;
     const text = `A passkey has been removed from your Fotosfolio account.
 
   Passkey Name: ${passkeyName}
@@ -740,7 +852,7 @@ export class SecurityEmailsService extends BaseEmailService {
     ipAddress: string,
     datetime: Date
   ): Promise<EmailData> {
-    const subject = `🔐 Security Questions Configured`;
+    const subject = `Security Questions Configured`;
     const text = `Security questions have been set up on your Fotosfolio account.
 
   Device: ${device}
@@ -881,7 +993,7 @@ export class SecurityEmailsService extends BaseEmailService {
     ipAddress: string,
     datetime: Date
   ): Promise<EmailData> {
-    const subject = `⚠️ Security Questions Removed`;
+    const subject = `Security Questions Removed`;
     const text = `Security questions have been removed from your Fotosfolio account.
 
   Device: ${device}
