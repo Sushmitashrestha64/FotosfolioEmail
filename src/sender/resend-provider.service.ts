@@ -13,6 +13,8 @@ export class ResendProviderService implements OnModuleInit {
   private dailyLimit: number;
   private emailCountToday: number = 0;
   private lastResetDate: string;
+  private lastApiFetchTime: number = 0;
+  private apiCacheDuration: number = 5 * 60 * 1000; // Cache for 5 minutes
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -32,38 +34,101 @@ export class ResendProviderService implements OnModuleInit {
   }
 
   /**
-   * Fetch all emails sent today from Resend API
+   * Fetch emails sent today from Resend API with pagination
    */
   private async getTodaysEmailCount(): Promise<number> {
-    // DISABLED: Fetching from API causes rate limiting and errors
-    // Using local counter instead for better reliability
-    return this.emailCountToday;
+    const now = Date.now();
     
-    /* Original API fetch code - disabled
-    const apiUrl = 'https://api.resend.com/emails';
-    
+    // Use cache to avoid excessive API calls (refresh every 5 minutes)
+    if (now - this.lastApiFetchTime < this.apiCacheDuration) {
+      this.logger.debug(`Using cached count: ${this.emailCountToday}`);
+      return this.emailCountToday;
+    }
+
+    // Get today's date in UTC (Resend uses UTC timestamps)
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    let totalCount = 0;
+    let pageCount = 0;
+    let lastEmailId: string | null = null;
+    const maxPages = 5; // Limit to avoid excessive API calls
+
     try {
-      const response = await axios.get(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${this.apiKey1}`,
-        },
-      });
+      let hasMore = true;
+      
+      while (hasMore && pageCount < maxPages) {
+        // Build URL with limit and starting_after for pagination
+        const params: any = { limit: 100 }; // Max allowed by Resend API
+        if (lastEmailId) {
+          params.starting_after = lastEmailId;
+        }
 
-      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-      const todaysEmails = response.data.data.filter((email: any) =>
-        email.created_at.startsWith(today),
-      );
+        // Wait 500ms between requests to respect rate limits (2 req/sec)
+        if (pageCount > 0) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
 
-      this.logger.log(`📧 Total emails sent today: ${todaysEmails.length}`);
-      return todaysEmails.length;
+        const response = await axios.get('https://api.resend.com/emails', {
+          headers: {
+            Authorization: `Bearer ${this.apiKey1}`,
+          },
+          params,
+          timeout: 10000,
+        });
+
+        const emails = response.data.data || [];
+        hasMore = response.data.has_more === true;
+        
+        // Filter emails sent today
+        const todaysEmails = emails.filter((email: any) => {
+          if (!email.created_at) return false;
+          const emailDate = email.created_at.slice(0, 10);
+          return emailDate === today;
+        });
+
+        totalCount += todaysEmails.length;
+        pageCount++;
+        
+        this.logger.log(
+          `📄 Page ${pageCount}: ${todaysEmails.length}/${emails.length} from today ` +
+          `(total: ${totalCount}, has_more: ${hasMore})`
+        );
+        
+        // Get last email ID for next page
+        if (emails.length > 0) {
+          lastEmailId = emails[emails.length - 1].id;
+        }
+        
+        // Stop if no more today's emails found on this page (optimization)
+        if (todaysEmails.length === 0) {
+          this.logger.log('⏹️ No emails from today on this page, stopping');
+          break;
+        }
+      }
+      
+      this.logger.log(`📧 Total emails sent today: ${totalCount} (${pageCount} pages fetched)`);
+      
+      // Update cache
+      this.emailCountToday = totalCount;
+      this.lastApiFetchTime = now;
+      
+      return totalCount;
     } catch (error: any) {
       this.logger.error(
-        `Error fetching email count: ${JSON.stringify(error.response?.data) || error.message}`,
+        `⚠️ Failed to fetch email count from Resend API: ${error.message}`
       );
-      // Fallback to 0 if we can't fetch
-      return 0;
+      
+      if (error.response) {
+        this.logger.error(
+          `API Error: Status ${error.response.status}, ` +
+          `Data: ${JSON.stringify(error.response.data)}`
+        );
+      }
+      
+      this.logger.log(`Using last known count: ${this.emailCountToday}`);
+      
+      // Return last known count (don't reset to 0 on error)
+      return this.emailCountToday;
     }
-    */
   }
 
   /**
@@ -115,10 +180,11 @@ export class ResendProviderService implements OnModuleInit {
 
   /**
    * Increment email counter (call after successful send)
+   * Note: With API fetching enabled, this is a fallback between API refreshes
    */
   incrementCounter(): void {
     this.emailCountToday++;
-    this.logger.debug(`📈 Email counter: ${this.emailCountToday}/${this.dailyLimit}`);
+    this.logger.debug(`📈 Email counter (local): ${this.emailCountToday}/${this.dailyLimit}`);
     
     // Auto-switch if we hit the limit
     if (this.emailCountToday === this.dailyLimit) {
