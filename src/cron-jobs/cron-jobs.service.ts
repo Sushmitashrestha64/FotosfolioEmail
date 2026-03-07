@@ -2,13 +2,18 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as cron from 'node-cron';
 import axios from 'axios';
+import { WorkerPoolService } from '../workersqueue/workerqueue-pool.service';
+import { EmailType, EmailCategory } from '../types/email-types';
 
 @Injectable()
 export class CronJobsService implements OnModuleInit {
   private readonly logger = new Logger(CronJobsService.name);
   private readonly mainBackendUrl: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly workerPool: WorkerPoolService,
+  ) {
     // Get main backend URL from config
     this.mainBackendUrl = this.configService.get('MAIN_BACKEND_URL', 'http://localhost:3000/api');
     this.logger.log(`🔗 Main Backend URL: ${this.mainBackendUrl}`);
@@ -39,50 +44,90 @@ export class CronJobsService implements OnModuleInit {
   }
 
   /**
-   * Midnight Tasks - Trigger main backend to handle subscriptions and storage
+   * Midnight Tasks - Fetch data from backend and queue emails
    */
   async runMidnightTasks() {
     const startTime = new Date();
     this.logger.log(`[Cron] Starting midnight tasks at ${startTime.toISOString()}`);
 
     const results = {
-      expiredSubscriptions: { success: false, message: '' },
-      expiredAddons: { success: false, message: '' },
-      gracePeriod: { success: false, message: '' },
-      markExpired: { success: false, message: '' },
+      expiredSubscriptions: { success: false, count: 0, message: '' },
+      expiredAddons: { success: false, count: 0, message: '' },
+      gracePeriod: { success: false, count: 0, message: '' },
+      markExpired: { success: false, count: 0, message: '' },
     };
 
     try {
-      // 1. Process expired subscriptions
+      // 1. Get expired subscriptions from backend and queue emails
       try {
-        await this.callBackendEndpoint('/cron/subscriptions/process-expired', 'POST');
-        results.expiredSubscriptions = { success: true, message: 'Processed expired subscriptions' };
+        const data = await this.getBackendData('/cron/subscriptions/expired');
+        await Promise.all(
+          data.map((subscription) =>
+            this.workerPool.addJob(
+              EmailCategory.SUBSCRIPTION,
+              EmailType.SUBSCRIPTION_EXPIRED,
+              {
+                to: subscription.userEmail,
+                userName: subscription.userName,
+                graceDaysRemaining: subscription.graceDays || 3,
+              }
+            )
+          )
+        );
+        results.expiredSubscriptions = { success: true, count: data.length, message: `Queued ${data.length} expired subscription emails` };
       } catch (error: any) {
-        results.expiredSubscriptions = { success: false, message: error.message };
+        results.expiredSubscriptions = { success: false, count: 0, message: error.message };
       }
 
-      // 2. Process expired add-on storages
+      // 2. Get expired add-ons from backend and queue emails
       try {
-        await this.callBackendEndpoint('/cron/storage/expire-addons', 'POST');
-        results.expiredAddons = { success: true, message: 'Processed expired add-ons' };
+        const data = await this.getBackendData('/cron/storage/expired-addons');
+        await Promise.all(
+          data.map((addon) =>
+            this.workerPool.addJob(
+              EmailCategory.STORAGE,
+              EmailType.ADDON_EXPIRY,
+              {
+                to: addon.userEmail,
+                userName: addon.userName,
+                addOnName: addon.addonName,
+                expiredDate: addon.expiredDate,
+              }
+            )
+          )
+        );
+        results.expiredAddons = { success: true, count: data.length, message: `Queued ${data.length} addon expiry emails` };
       } catch (error: any) {
-        results.expiredAddons = { success: false, message: error.message };
+        results.expiredAddons = { success: false, count: 0, message: error.message };
       }
 
-      // 3. Send grace period notifications
+      // 3. Get users in grace period and send final warnings
       try {
-        await this.callBackendEndpoint('/cron/storage/grace-period-notifications', 'POST');
-        results.gracePeriod = { success: true, message: 'Sent grace period notifications' };
+        const data = await this.getBackendData('/cron/storage/grace-period-users');
+        await Promise.all(
+          data.map((user) =>
+            this.workerPool.addJob(
+              EmailCategory.STORAGE,
+              EmailType.ADDON_FINAL_GRACE,
+              {
+                to: user.userEmail,
+                userName: user.userName,
+                daysRemaining: user.daysRemaining,
+              }
+            )
+          )
+        );
+        results.gracePeriod = { success: true, count: data.length, message: `Queued ${data.length} grace period emails` };
       } catch (error: any) {
-        results.gracePeriod = { success: false, message: error.message };
+        results.gracePeriod = { success: false, count: 0, message: error.message };
       }
 
-      // 4. Mark subscriptions as ended after grace period
+      // 4. Mark subscriptions as ended (backend updates DB, no emails)
       try {
         await this.callBackendEndpoint('/cron/subscriptions/mark-ended', 'POST');
-        results.markExpired = { success: true, message: 'Marked expired subscriptions as ended' };
+        results.markExpired = { success: true, count: 0, message: 'Marked expired subscriptions as ended' };
       } catch (error: any) {
-        results.markExpired = { success: false, message: error.message };
+        results.markExpired = { success: false, count: 0, message: error.message };
       }
 
       const endTime = new Date();
@@ -97,16 +142,30 @@ export class CronJobsService implements OnModuleInit {
   }
 
   /**
-   * Morning Tasks - Trigger main backend to send subscription expiration reminders
+   * Morning Tasks - Get expiring subscriptions and queue reminder emails
    */
   async runSubscriptionReminderTasks() {
     this.logger.log('[Cron] Starting subscription reminder tasks');
 
     try {
-      await this.callBackendEndpoint('/cron/subscriptions/send-expiration-reminders', 'POST');
+      const data = await this.getBackendData('/cron/subscriptions/expiring-soon');
       
-      this.logger.log('[Cron] ✅ Subscription reminders triggered');
-      return { success: true, timestamp: new Date().toISOString() };
+      await Promise.all(
+        data.map((subscription) =>
+          this.workerPool.addJob(
+            EmailCategory.SUBSCRIPTION,
+            EmailType.SUBSCRIPTION_EXPIRING,
+            {
+              to: subscription.userEmail,
+              userName: subscription.userName,
+              daysRemaining: subscription.daysRemaining || 7,
+            }
+          )
+        )
+      );
+      
+      this.logger.log(`[Cron] ✅ Queued ${data.length} subscription reminder emails`);
+      return { success: true, count: data.length, timestamp: new Date().toISOString() };
     } catch (error) {
       this.logger.error('[Cron] ❌ Failed subscription reminder tasks', error.stack || error);
       throw error;
@@ -168,7 +227,41 @@ export class CronJobsService implements OnModuleInit {
   }
 
   /**
-   * Helper method to call main backend API endpoints
+   * Helper method to GET data from main backend API
+   */
+  private async getBackendData(endpoint: string): Promise<any[]> {
+    const url = `${this.mainBackendUrl}${endpoint}`;
+    
+    try {
+      this.logger.log(`[API] Fetching data from GET ${url}`);
+      
+      const response = await axios({
+        method: 'GET',
+        url,
+        timeout: 30000, // 30 second timeout
+      });
+
+      const data = response.data?.data || response.data || [];
+      this.logger.log(`[API] ✅ Received ${data.length} items from ${endpoint}`);
+      return data;
+    } catch (error: any) {
+      if (error.code === 'ECONNREFUSED') {
+        this.logger.warn(`[API] ⚠️ Main backend not available at ${url}`);
+        return []; // Return empty array if backend unavailable
+      }
+      
+      if (error.response) {
+        this.logger.error(`[API] ❌ ${endpoint} failed: ${error.response.status} - ${error.response.data?.message || error.message}`);
+        return [];
+      }
+
+      this.logger.error(`[API] ❌ ${endpoint} failed: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Helper method to call main backend API endpoints (POST for actions)
    */
   private async callBackendEndpoint(endpoint: string, method: 'GET' | 'POST' = 'POST'): Promise<any> {
     const url = `${this.mainBackendUrl}${endpoint}`;
