@@ -179,6 +179,12 @@ export class WorkerPoolService implements OnModuleInit, OnModuleDestroy {
       case EmailType.ACCOUNT_DELETED:
         // Fallback to account created (inverse logic)
         return this.accountEmails.buildAccountCreatedEmail(payload.to, payload.username);
+      case EmailType.ACCOUNT_ACTIVATION:
+        return this.subscriptionEmails.buildAccountActivationEmail(
+          payload.to,
+          payload.userName,
+          payload.planName
+        );
       case EmailType.TWO_FACTOR_ENABLED:
         return this.securityEmails.build2FAEnabledEmail(
           payload.userEmail,
@@ -189,6 +195,12 @@ export class WorkerPoolService implements OnModuleInit, OnModuleDestroy {
         );
       case EmailType.TWO_FACTOR_CODE:
         return this.accountEmails.buildOtpEmail(payload.to, payload.userName, payload.otpCode);
+      case EmailType.CONTACT_FORM:
+        // Contact form uses a special DTO structure
+        return this.accountEmails.buildAccountCreatedEmail(
+          payload.contact?.email || payload.to,
+          payload.contact?.name || 'User'
+        );
       default:
         throw new Error(`Unknown account email type: ${type}`);
     }
@@ -222,13 +234,19 @@ export class WorkerPoolService implements OnModuleInit, OnModuleDestroy {
         return this.subscriptionEmails.buildSubscriptionExpiredEmail(
           payload.to,
           payload.userName,
-          payload.graceDaysRemaining || 3
+          payload.graceDaysRemaining 
         );
       case EmailType.SUBSCRIPTION_EXPIRING:
         return this.subscriptionEmails.buildSubscriptionExpirationReminderEmail(
           payload.to,
           payload.userName,
-          payload.daysRemaining || payload.daysLeft || 7
+          payload.daysRemaining || payload.daysLeft 
+        );
+      case EmailType.SUBSCRIPTION_EXPIRED:
+        return this.subscriptionEmails.buildSubscriptionExpiredEmail(
+          payload.to,
+          payload.userName,
+          payload.graceDaysRemaining || 3
         );
       case EmailType.PLAN_UPGRADED:
         // Map to account activation
@@ -265,12 +283,71 @@ export class WorkerPoolService implements OnModuleInit, OnModuleDestroy {
           payload.location,
           payload.datetime
         );
+      case EmailType.NEW_IP_LOGIN:
+        return this.securityEmails.buildNewIpLoginAlertEmail(
+          payload.userEmail,
+          payload.ipAddress,
+          payload.device,
+          payload.location,
+          payload.datetime
+        );
       case EmailType.SUSPICIOUS_ACTIVITY:
         return this.securityEmails.buildLoginNotificationEmail(
           payload.to,
           payload.userName,
           payload.loginTime,
           payload.ipAddress
+        );
+      case EmailType.GOOGLE_ACCOUNT_DISCONNECTED:
+        return this.accountEmails.buildGoogleAccountDisconnectedEmail(
+          payload.userEmail,
+          payload.username,
+          payload.device || 'Unknown Device',
+          payload.location || 'Unknown Location',
+          payload.ipAddress || 'Unknown IP',
+          payload.datetime || new Date()
+        );
+      case EmailType.TWO_FA_DISABLED:
+        return this.securityEmails.build2FADisabledEmail(
+          payload.userEmail,
+          payload.device || 'Unknown Device',
+          payload.location || 'Unknown Location',
+          payload.ipAddress || 'Unknown IP',
+          payload.datetime || new Date()
+        );
+      case EmailType.PASSKEY_ENABLED:
+        return this.securityEmails.buildPasskeyEnabledEmail(
+          payload.userEmail,
+          payload.passkeyName || 'Default Passkey',
+          payload.device || 'Unknown Device',
+          payload.location || 'Unknown Location',
+          payload.ipAddress || 'Unknown IP',
+          payload.datetime || new Date()
+        );
+      case EmailType.PASSKEY_DISABLED:
+        return this.securityEmails.buildPasskeyDisabledEmail(
+          payload.userEmail,
+          payload.passkeyName || 'Default Passkey',
+          payload.device || 'Unknown Device',
+          payload.location || 'Unknown Location',
+          payload.ipAddress || 'Unknown IP',
+          payload.datetime || new Date()
+        );
+      case EmailType.SECURITY_QUESTION_ENABLED:
+        return this.securityEmails.buildSecurityQuestionEnabledEmail(
+          payload.userEmail,
+          payload.device || 'Unknown Device',
+          payload.location || 'Unknown Location',
+          payload.ipAddress || 'Unknown IP',
+          payload.datetime || new Date()
+        );
+      case EmailType.SECURITY_QUESTION_DISABLED:
+        return this.securityEmails.buildSecurityQuestionDisabledEmail(
+          payload.userEmail,
+          payload.device || 'Unknown Device',
+          payload.location || 'Unknown Location',
+          payload.ipAddress || 'Unknown IP',
+          payload.datetime || new Date()
         );
       default:
         throw new Error(`Unknown security email type: ${type}`);
@@ -341,6 +418,10 @@ export class WorkerPoolService implements OnModuleInit, OnModuleDestroy {
         return this.storageEmails.buildStorageWarning(payload);
       case EmailType.STORAGE_FULL:
         return this.storageEmails.buildStorageFull(payload);
+      case EmailType.ADDON_EXPIRY:
+        return this.storageEmails.buildAddonExpiry(payload);
+      case EmailType.ADDON_FINAL_GRACE:
+        return this.storageEmails.buildAddonFinalGrace(payload);
       default:
         throw new Error(`Unknown storage email type: ${type}`);
     }
