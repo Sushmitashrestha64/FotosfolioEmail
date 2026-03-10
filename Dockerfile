@@ -32,12 +32,12 @@ COPY --chown=nestjs:nodejs --from=builder /app/dist ./dist
 # Switch to the non-root user
 USER nestjs
 
-# Port is 3002 internally, but we won't expose it to the public
-EXPOSE 3002
+# Port is 3000 internally, but we won't expose it to the public
+EXPOSE 3000
 
 # Health check (internal)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3002/api/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) })"
 
 # Start the application directly with Node (for proper signal handling)
 CMD ["node", "dist/main.js"]
